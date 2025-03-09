@@ -48,7 +48,7 @@ export function App() {
     watch
   } = useForm({
     resolver: valibotResolver(schema),
-    "mode": "onBlur",
+    mode: "onChange",
     defaultValues: {
       totalInvestment: 0,
       odds: [
