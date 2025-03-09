@@ -24,21 +24,37 @@ const schema = v.object({
 
 const calculatePerOddValue = (totalInvestment: number, odds: { odd: number; tax: number }[]) => {
   if (!totalInvestment || !odds || odds.length < 2) {
-    return odds.map(() => 0);
+    return odds.map(() => ({ value: 0, recommended: 0 }));
   }
 
   const sumOfInverses = odds.reduce((acc, { odd, tax }) => acc + 1 / (odd * (1 - tax / 100)), 0);
-  return odds.map(({ odd, tax }) => (totalInvestment / (odd * (1 - tax / 100))) / sumOfInverses);
+  return odds.map(({ odd, tax }) => {
+    const value = (totalInvestment / (odd * (1 - tax / 100))) / sumOfInverses;
+    const recommended = Math.round(value / 10) * 10;
+    return { value, recommended };
+  });
 };
 
-const calculateProfit = (totalInvestment: number, odds: { odd: number; tax: number }[], perOddValue: number[]) => {
-  if (!totalInvestment || !odds || odds.length < 2 || perOddValue.some(Number.isNaN)) {
+const calculateProfit = (totalInvestment: number, odds: { odd: number; tax: number }[], perOddValue: { value: number; recommended: number }[]) => {
+  if (!totalInvestment || !odds || odds.length < 2 || perOddValue.some(item => Number.isNaN(item.value))) {
     return 0;
   }
 
-  const potentialReturns = odds.map(({ odd, tax }, index) => perOddValue[index] * odd * (1 - tax/100));
+  const potentialReturns = odds.map(({ odd, tax }, index) => perOddValue[index].value * odd * (1 - tax / 100));
   const minReturn = Math.min(...potentialReturns);
   return minReturn - totalInvestment;
+};
+
+const calculateRecommendedProfit = (totalInvestment: number, odds: { odd: number; tax: number }[], perOddValue: { value: number; recommended: number }[]) => {
+  if (!totalInvestment || !odds || odds.length < 2 || perOddValue.some(item => Number.isNaN(item.recommended))) {
+    return 0;
+  }
+
+  const recommendedTotal = perOddValue.reduce((sum, item) => sum + item.recommended, 0);
+
+  const potentialReturns = odds.map(({ odd, tax }, index) => perOddValue[index].recommended * odd * (1 - tax / 100));
+  const minReturn = Math.min(...potentialReturns);
+  return minReturn - recommendedTotal;
 };
 
 export function App() {
@@ -65,6 +81,7 @@ export function App() {
   const perOddValue = calculatePerOddValue(totalInvestment, odds);
 
   const profit = calculateProfit(totalInvestment, odds, perOddValue);
+  const recommendedProfit = calculateRecommendedProfit(totalInvestment,odds, perOddValue)
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-2">
@@ -88,15 +105,20 @@ export function App() {
               />
             )}
           />
-          <div>
-            <Input
-              label="Lucro"
-              value={`R$ ${profit.toFixed(2)}`}
-              readOnly
-              disabled
-              className={profit > 0 ? "text-green-500 border-green-500" : "text-red-500 border-red-500"}
-            />
-          </div>
+          <Input
+            label="Lucro"
+            value={`R$ ${profit.toFixed(2)}`}
+            readOnly
+            disabled
+            className={profit > 0 ? "text-green-500 border-green-500" : "text-red-500 border-red-500"}
+          />
+          <Input
+            label="Lucro com valores arredondados"
+            value={`R$ ${recommendedProfit.toFixed(2)}`}
+            readOnly
+            disabled
+            className={recommendedProfit > 0 ? "text-green-500 border-green-500" : "text-red-500 border-red-500"}
+          />
         </div>
         <Table>
           <TableHeader>
@@ -104,6 +126,7 @@ export function App() {
               <TableHead>Odd</TableHead>
               <TableHead>Taxa</TableHead>
               <TableHead>Valor da aposta</TableHead>
+              <TableHead>Valor arredondado</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
@@ -145,7 +168,10 @@ export function App() {
                   />
                 </TableCell>
                 <TableCell>
-                  <span>R$ {perOddValue[index]?.toFixed(2)}</span>
+                  <span>R$ {perOddValue[index]?.value.toFixed(2)}</span>
+                </TableCell>
+                <TableCell>
+                  <span>R$ {perOddValue[index]?.recommended.toFixed(2)}</span>
                 </TableCell>
                 <TableCell>
                   <Button
