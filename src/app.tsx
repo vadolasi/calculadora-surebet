@@ -8,7 +8,7 @@ import { NumericFormat } from "react-number-format"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./components/ui/table"
 
 const schema = v.object({
-  totalInvestment: v.pipe(v.number(), v.minValue(10)),
+  totalInvestment: v.pipe(v.number(), v.minValue(1)),
   odds: v.pipe(
     v.array(
       v.pipe(
