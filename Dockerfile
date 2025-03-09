@@ -3,7 +3,7 @@ FROM oven/bun as build
 WORKDIR /usr/src/app
 
 COPY package.json bun.lock ./
-RUN bun i --production
+RUN bun i --frozen-lockfile
 
 COPY . .
 
